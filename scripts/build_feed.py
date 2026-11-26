@@ -1,4 +1,5 @@
-"""Fetch the Blu Breeze blog feed from Shopify and publish it as a clean RSS 2.0 file
+"""Fetch the Blu Breeze blog feed from Shopify (theme template /blogs/blog?view=rss, which
+includes each post's featured image; Shopify's own .atom feed does not) and publish it as a clean RSS 2.0 file
 that Pinterest auto-publish can read. Runs in GitHub Actions; no secrets needed."""
 import email.utils, html, re, sys, urllib.request, xml.etree.ElementTree as ET
 from datetime import datetime
@@ -7,16 +8,49 @@ SITE = "https://blubreezecreations.com"
 ATOM = SITE + "/blogs/blog.atom"
 OUT = sys.argv[1] if len(sys.argv) > 1 else "public/feed.xml"
 A = "{http://www.w3.org/2005/Atom}"
-
-req = urllib.request.Request(ATOM, headers={"User-Agent": "Mozilla/5.0 (BluBreezeFeedBot)"})
-root = ET.fromstring(urllib.request.urlopen(req, timeout=30).read())
-
 def esc(s): return html.escape(s or "", quote=True)
 def text(html_s):
     t = re.sub(r"<[^>]+>", " ", html.unescape(html_s or ""))
     return re.sub(r"\s+", " ", t).strip()
 
+SRC = SITE + "/blogs/blog?view=rss"
+def get(u):
+    r = urllib.request.Request(u, headers={"User-Agent": "Mozilla/5.0 (BluBreezeFeedBot)"})
+    return urllib.request.urlopen(r, timeout=30).read()
+
+def from_theme_rss():
+    rss = ET.fromstring(get(SRC).strip())
+    out = []
+    M = "{http://search.yahoo.com/mrss/}"
+    for it in rss.iter("item"):
+        mc = it.find(M + "content")
+        if mc is None: continue
+        link = re.sub(r"^https?://[^/]+", SITE, it.findtext("link").strip())
+        out.append(dict(title=it.findtext("title"), link=link, pub=it.findtext("pubDate"),
+                        desc=it.findtext("description"), img=mc.get("url")))
+    return out
+
+try:
+    theme_items = from_theme_rss()
+except Exception as ex:
+    print("Theme RSS unavailable:", ex); theme_items = []
+
 items = []
+for t in theme_items:
+    items.append(f"""    <item>
+      <title>{esc(t['title'])}</title>
+      <link>{esc(t['link'])}</link>
+      <guid isPermaLink="true">{esc(t['link'])}</guid>
+      <pubDate>{esc(t['pub'])}</pubDate>
+      <description>{esc(t['desc'])}</description>
+      <media:content url="{esc(t['img'])}" medium="image"/>
+      <enclosure url="{esc(t['img'])}" type="image/jpeg" length="0"/>
+    </item>""")
+
+req = urllib.request.Request(ATOM, headers={"User-Agent": "Mozilla/5.0 (BluBreezeFeedBot)"})
+root = ET.fromstring(urllib.request.urlopen(req, timeout=30).read()) if not items else ET.Element("x")
+
+
 for e in root.findall(A + "entry"):
     link = next((l.get("href") for l in e.findall(A + "link") if l.get("rel", "alternate") == "alternate"), None)
     if not link: continue
