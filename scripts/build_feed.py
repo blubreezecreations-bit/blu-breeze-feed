@@ -19,7 +19,10 @@ def get(u):
     return urllib.request.urlopen(r, timeout=30).read()
 
 def from_theme_rss():
-    rss = ET.fromstring(get(SRC).strip())
+    raw = get(SRC).decode("utf-8", "replace").strip()
+    # Shopify image URLs contain bare "&" (e.g. ?v=1&width=1000); escape any "&" that isn't an entity
+    raw = re.sub(r"&(?!(?:amp|lt|gt|quot|apos|#\d+|#x[0-9a-fA-F]+);)", "&amp;", raw)
+    rss = ET.fromstring(raw.encode())
     out = []
     M = "{http://search.yahoo.com/mrss/}"
     for it in rss.iter("item"):
