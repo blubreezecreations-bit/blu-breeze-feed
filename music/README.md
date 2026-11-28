@@ -11,3 +11,4 @@ Mixkit Free License, YouTube Audio Library). Record the source and any required 
 
 | File | Source | Licence | Credit needed? |
 |---|---|---|---|
+| (see tracks.json for all 10 tracks: title, Pixabay source page, licence, mood, tempo, best start time) | Pixabay | Pixabay Content License | No |
