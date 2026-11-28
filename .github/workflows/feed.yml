@@ -27,6 +27,8 @@ jobs:
       - run: printf '<!doctype html><title>Blu Breeze feed</title><p><a href="feed.xml">feed.xml</a></p>' > public/index.html
       - name: Publish music library (royalty-free tracks for Reels)
         run: if [ -d music ]; then cp -r music public/music; ls public/music; fi
+      - name: Publish post media (Reels/images for Buffer)
+        run: if [ -d media ]; then cp -r media public/media; ls -R public/media; fi
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
