@@ -5,6 +5,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
+    paths-ignore: ["README.md"]
 permissions:
   contents: read
   pages: write
@@ -24,6 +25,8 @@ jobs:
           python-version: "3.12"
       - run: python scripts/build_feed.py public/feed.xml
       - run: printf '<!doctype html><title>Blu Breeze feed</title><p><a href="feed.xml">feed.xml</a></p>' > public/index.html
+      - name: Publish music library (royalty-free tracks for Reels)
+        run: if [ -d music ]; then cp -r music public/music; ls public/music; fi
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
